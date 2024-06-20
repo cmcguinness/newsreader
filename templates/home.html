@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>Your Top Stories</h2>
+    <div class="list-group">
+        {% for story in stories %}
+            <span class="list-group-item list-group-item-action">
+
+        <a href="/open?id={{ story.id }}" target="_blank"  class="link-underline link-underline-opacity-0 link-dark">
+            {{ story.headline[:100] }}
+            {% if story.headline|length > 100 %}...{% endif %}
+        </a>
+        <span class="float-end">
+            {% for tag in story.tags %}
+                <span class="badge rounded-pill bg-primary">{{ tag }}</span>
+            {% endfor %}
+            <button class="btn btn-outline-success btn-sm" onclick="likeStory({{ story.id }})">↑</button>
+            <button class="btn btn-outline-danger btn-sm" onclick="dislikeStory({{ story.id }})">↓</button>
+        </span>
+        </span>
+        {% endfor %}
+    </div>
+{% endblock %}

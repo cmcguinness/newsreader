@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>Newsreader Help</h2>
+    <p>Mostly, this app is intended as a demo, so the UI leaves a lot to be desired. The
+        basics of it are as follows:</p>
+    <ul>
+        <li>When you start the app, it retrieves headlines from CNN Lite.</li>
+        <li>Any that it hasn't seen before get assigned tags to help with scoring</li>
+        <li>The highest scored stories you haven't read are shown first.</li>
+        <li>If you like or dislike a story, that is used in future scoring.</li>
+        <li>If you click on a headline, you are presumed to have "liked" the story and the
+            story opens in a new tab.
+        </li>
+    </ul>
+    <p>Apart from that, you can learn more about the app by
+        visiting <a href="https://mcguinnessai.substack.com">McGuinness on AI</a>
+        or by reading the README.md in the repository.</p>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="container">
+        <div class="row align-items-start">
+            <div class="col-md-6">
+                <h2>Just a moment while our trained Llamas read the headlines for you.</h2>
+                <p>Status: <span id="status" class="mt-3">Looking for Llamas</span></p>
+                <p>&nbsp;</p>
+                <h4>Fun Llama Facts</h4>
+                <p id="facts"></p>
+            </div>
+
+            <div class="col-md-6 text-end">
+                <img src="/static/images/llama-animation.gif" class="img-fluid" alt="Llama reading the news">
+            </div>
+        </div>
+    </div>
+    <script>
+
+        function done() {
+            window.location.href = "/home";
+        }
+
+        function updateStatus(message) {
+            console.log(message);
+            document.getElementById('status').innerText = message;
+        }
+
+        function error() {
+            alert('An error occurred during the task.');
+        }
+
+
+        function start() {
+            updateStatus('Corralling Llamas...');
+            fetch('/api/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+                .then(function(response) {
+                    console.log(response);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data);
+                    if (data.status === 'done') {
+                        done();
+                    } else {
+                        updateStatus('Llamas have started...');
+                        setTimeout(checkStatus, 2000);
+                    }
+                })
+                .catch(() => {
+                    error();
+                });
+        }
+
+        function checkStatus() {
+            console.log('Checking status...');
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    updateStatus(data.message);
+                    if (data.status === 'done') {
+                        done();
+                    } else if (data.status === 'error') {
+                        console.log(data);
+                        error();
+                    } else {
+                        setTimeout(checkStatus, 2000);
+                    }
+                })
+                .catch(() => {
+                    error();
+                });
+        }
+
+        start();
+
+        const facts = [
+            'Llamas are social animals and live in condos.',
+            'Male llamas are often named "Larry", but by the time they go to college they prefer "Laurence".',
+            'Llamas are used as pack animals in South America and can sing "Leader of the Pack" by the Shangri-Llamas.',
+            'Llamas are intelligent and can learn simple tasks after a few repetitions, which makes them easier to train than LLMs.',
+            'Llamas are known for spitting when they are agitated, and so are good for drone defense',
+            'Llamas are used as therapy animals. They are great listeners and give good advice.',
+            'Llamas are known for their soft wool, which is why you get a mini-Llama if you leave one in the rain.',
+            'Llamas are lazy and if there is a nearby horse, they will jump on its back and shout "Giddy up!"',
+            'Llamas are used to protect livestock from drones.',
+            'Llamas are known for their long eyelashes.  They are often used as mascara models.',
+        ];
+
+        let factnum = 0;
+
+        function showFact() {
+            document.getElementById('facts').innerText = facts[factnum];
+            factnum = (factnum + 1) % facts.length;
+            setTimeout(showFact, 10000);
+        }
+
+        showFact();
+
+    </script>
+{% endblock %}
