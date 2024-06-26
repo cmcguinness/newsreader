@@ -42,25 +42,23 @@ You'll need to clone the repo locally and install the requirements as given in r
 
 ## Configuration
 
-The application supports three different APIs (which you can modify in source code):
+The application supports four different APIs (which you can modify in source code):
 
 * Ollama, running Microsoft's phi3:mini
 * Hugging Face, using their free, serverless API to run the LLama3:8B-Instruct model
 * Anthropic, using their dirt cheap (but not free), Claude Haiku model
+* Groq, using their API which can be free and severely rate limited, or dirt cheap
 
-Regarding having to pay for Anthropic, As Meatloaf once sang,  *two out of three ain't bad*.
+As Meatloaf once sang,  *two out of three, free, ain't bad*. (1)
 
 The program is configured via environment variables:
 
 | Name              | Description                                                  |
 | ----------------- | ------------------------------------------------------------ |
-| LLM_SERVICE       | Indicates which service you want to use. Legal values are (all lowercase): `ollama`, `huggingface`, and `anthropic`.  The default is `ollama`, as this allows you to run the application without any environment variables set (assuming `ollama` is working.) |
+| LLM_SERVICE       | Indicates which service you want to use. Legal values are (all lowercase): `ollama`, `huggingface`, `groq`, and `anthropic`.  The default is `ollama`, as this allows you to run the application without any environment variables set (assuming `ollama` is working.) |
 | ANTHROPIC_API_KEY | If you are using Anthropic, you'll need to get an API key to access their services.  Use this environment variable to pass it into the code. |
 | HF_API_KEY        | If you are using Hugging Face, you will need one of their API keys (which they call an *Access Token*) |
-
-### Configuring Ollama
-
-If you want to use Ollama, it assumes you have a custom model called "newsreader".  Building a custom model is nowhere near as complicated, nor as useful, as it might sound.  The directory `modelgen` contains a modelfile and a shell script to build a new model.  Basically, all the model file does is choose what model you want to use (it currently uses phi3:mini, which is small enough to run acceptably on less powerful laptops) and then supply the system prompt.  The script will generate a new model (in the lamest sense possible) with those parameters.
+| GROQ_API_KEY      | Your API key for GROQ, if you're using it                    |
 
 ## Running
 
@@ -74,3 +72,7 @@ Once everything is configured, just run `python app.py`.
 * You can modify the source code to try other models.
 * Hugging Face's free API is rate limited; you might consider their $9/month "Pro" subscription to get the limits raised.
 * There's a tuning for the batch size for each type of service; I've set it to what seems to work for me.  You can modify it as you see fit (`get_batch_size()`).
+
+------
+
+(1) That joke worked when I had three LLMs supported, not four.  Sorry.

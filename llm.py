@@ -3,6 +3,7 @@ import json
 import os
 import badjson
 import utilities
+import time
 
 
 #    ┌────────────────────────────────────────────────────────────────────┐
@@ -27,6 +28,9 @@ class LLM:
         elif model_name == 'anthropic':
             self.llm = Anthropic()
             self.retry_limit = 1
+        elif model_name == 'groq':
+            self.llm = Groq()
+            self.retry_limit = 0
         else:
             self.llm = Ollama()
             self.retry_limit = 2
@@ -247,3 +251,66 @@ class Ollama:
                 raise
 
         return parsed_response
+
+
+class Groq:
+    def __init__(self):
+        self.url = 'https://api.groq.com/openai/v1/chat/completions'
+        self.api_key = os.getenv('GROQ_API_KEY')
+        self.model = os.getenv('GROQ_MODEL', 'llama3-70b-8192')
+
+    def get_batch_size(self):
+        if self.model == 'llama3-70b-8192':
+            return 10
+        return 5
+
+    def query(self, query):
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f'Bearer {self.api_key}'
+        }
+
+        while True:
+            full_response = requests.post(self.url, headers=headers, data=json.dumps(query))
+            full_response = full_response.json()
+            if 'error' in full_response:
+                if full_response['error']['code'] == "rate_limit_exceeded":
+                    m = full_response['error']['message']
+                    start_string = "Please try again in "
+                    s = m.index(start_string) + len(start_string)
+                    m = m[s:]
+                    e = m.index('s')
+                    m = m[:e]
+                    d = int(float(m) + 1)
+                    print(f"Rate limit exceeded.  Waiting {d} seconds", flush=True)
+                    time.sleep(d)
+                    continue
+            return full_response
+
+    def chat(self, system_prompt, user_prompt, history):
+        if system_prompt is None:
+            with open('system_prompt.md', 'r') as f:
+                system_prompt = f.read()
+
+        messages = [{'role': 'system', 'content': system_prompt}]
+
+        for h in history:
+            messages.append(h)
+        messages.append({'role': 'user', 'content': user_prompt})
+
+        llm_input = {
+            'messages': messages,
+            'model': self.model,
+            'temperature': 0.1,
+        }
+
+        full_response = self.query(llm_input)
+        raw_response = full_response['choices'][0]['message']['content']
+
+        print('Raw Response:\n', raw_response.replace('\n',' '), flush=True)
+        parsed_response = badjson.loads(raw_response)
+        if type(parsed_response).__name__ == 'dict':
+            parsed_response = parsed_response[list(parsed_response.keys())[0]]
+
+        return parsed_response
+
