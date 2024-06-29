@@ -49,6 +49,7 @@ class LLM:
                 if retries < 0:
                     utilities.Utilities().stop_process()                # If we can't get a response, we need to stop the program
                 print(f"Retrying LLM call", flush=True)
+                time.sleep(5)
 
     #    ┌──────────────────────────────────────────────────────────┐
     #    │    Each LLM has a sweet-spot of how many articles it     │
@@ -89,6 +90,11 @@ class HuggingFace:
     # This makes the actual call to the LLM and returns the response
     def llama_query(self, payload):
         response = requests.post(self.API_URL, headers=self.headers, json=payload)
+
+        # If not 200, throw an error
+        if response.status_code != 200:
+            response.raise_for_status()
+
         text = response.json()[0]['generated_text']
         response_tag = "<|start_header_id|>assistant<|end_header_id|>"
 
@@ -252,7 +258,11 @@ class Ollama:
 
         return parsed_response
 
-
+#    ┌──────────────────────────────────────────────────────────┐
+#    │                                                          │
+#    │                           GROQ                           │
+#    │                                                          │
+#    └──────────────────────────────────────────────────────────┘
 class Groq:
     def __init__(self):
         self.url = 'https://api.groq.com/openai/v1/chat/completions'
