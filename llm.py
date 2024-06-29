@@ -30,7 +30,7 @@ class LLM:
             self.retry_limit = 1
         elif model_name == 'groq':
             self.llm = Groq()
-            self.retry_limit = 0
+            self.retry_limit = 1
         else:
             self.llm = Ollama()
             self.retry_limit = 2
@@ -260,8 +260,6 @@ class Groq:
         self.model = os.getenv('GROQ_MODEL', 'llama3-70b-8192')
 
     def get_batch_size(self):
-        if self.model == 'llama3-70b-8192':
-            return 10
         return 5
 
     def query(self, query):
@@ -275,19 +273,34 @@ class Groq:
             full_response = full_response.json()
             if 'error' in full_response:
                 if full_response['error']['code'] == "rate_limit_exceeded":
+                    # Find the number of seconds to wait
                     m = full_response['error']['message']
                     start_string = "Please try again in "
                     s = m.index(start_string) + len(start_string)
                     m = m[s:]
                     e = m.index('s')
                     m = m[:e]
-                    d = int(float(m) + 1)
-                    print(f"Rate limit exceeded.  Waiting {d} seconds", flush=True)
+                    # If it's in milliseconds, convert to seconds
+                    if m[-1] == 'm':
+                        m = m[:-1]
+                        m = float(m) / 1000
+                    else:
+                        m = float(m)
+
+                    # Round up two seconds
+                    d = int(m + 2)
+                    print(f"Rate limit exceeded.  Waiting {d} second{'s' * (d > 1)}", flush=True)
                     time.sleep(d)
                     continue
             return full_response
 
-    def chat(self, system_prompt, user_prompt, history):
+    def chat(self, system_prompt, user_prompt, history, isRetry):
+
+        # If we're retrying, wait because we may have a weird rate limit edge case where the
+        # previous call's output was cut short because of rate limiting
+        if isRetry:
+            time.sleep(10)
+
         if system_prompt is None:
             with open('system_prompt.md', 'r') as f:
                 system_prompt = f.read()
@@ -301,7 +314,7 @@ class Groq:
         llm_input = {
             'messages': messages,
             'model': self.model,
-            'temperature': 0.1,
+            'temperature': 0.1 + 0.9 * isRetry,
         }
 
         full_response = self.query(llm_input)

@@ -72,6 +72,7 @@ Once everything is configured, just run `python app.py`.
 * You can modify the source code to try other models.
 * Hugging Face's free API is rate limited; you might consider their $9/month "Pro" subscription to get the limits raised.
 * There's a tuning for the batch size for each type of service; I've set it to what seems to work for me.  You can modify it as you see fit (`get_batch_size()`).
+* If you use Groq with a free plan and use Llama3 70B, it's going to rate limit fairly quickly and the initial processing of articles will run a bit slowly.
 
 ------
 
