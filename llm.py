@@ -124,7 +124,7 @@ class HuggingFace:
     # This is the externally callable chat interface
     def chat(self, system_prompt, user_prompt, history, retry):        # You might get warnings about history not being used. Ignore them
         if system_prompt is None:
-            with open('system_prompt.md', 'r') as f:
+            with open('revised_system_prompt.md', 'r') as f:
                 system_prompt = f.read()
         query = self.build_query(system_prompt, user_prompt, history)
 
@@ -169,7 +169,7 @@ class Anthropic:
         }
 
         if system_prompt is None:
-            with open('system_prompt.md', 'r') as f:
+            with open('revised_system_prompt.md', 'r') as f:
                 system_prompt = f.read()
 
         # Still not sure that this is perfect, but it works
@@ -222,7 +222,7 @@ class Ollama:
 
     def chat(self, system_prompt, user_prompt, history, retry):
         if system_prompt is None:
-            with open('system_prompt.md', 'r') as f:
+            with open('revised_system_prompt.md', 'r') as f:
                 system_prompt = f.read()
 
         messages = [{'role': 'system', 'content': system_prompt}]
@@ -312,7 +312,7 @@ class Groq:
             time.sleep(10)
 
         if system_prompt is None:
-            with open('system_prompt.md', 'r') as f:
+            with open('revised_system_prompt.md', 'r') as f:
                 system_prompt = f.read()
 
         messages = [{'role': 'system', 'content': system_prompt}]
