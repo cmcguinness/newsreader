@@ -211,10 +211,10 @@ class CNNLite:
                 new_tags = []
                 for tag in tags:
                     if "tags" in tag:
-                        new_tags.append({"tags": tag["tags"]})
+                        # Some LLMs will generate way too many tags.  This is a fail-safe to limit the # of tags
+                        new_tags.append({"tags": tag["tags"][:self.max_tags]})
 
-                # Some LLMs will generate way too many tags.  This is a fail-safe to limit the # of tags
-                tags = new_tags[:self.max_tags]
+                tags = new_tags
 
                 for i in range(len(tags)):
                     batch[i]['tags'] = tags[i]['tags']
