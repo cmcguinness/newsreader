@@ -77,7 +77,7 @@ class LLM:
 #    └────────────────────────────────────────────────────────────────────┘
 class HuggingFace:
     def __init__(self):
-        self.API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
+        self.API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.3-70B-Instruct"
         # This is how we get our API KEY -- from the environment
         self.headers = {"Authorization": f"Bearer {os.getenv('HF_API_KEY')}"}
 
@@ -88,7 +88,9 @@ class HuggingFace:
 
     # This makes the actual call to the LLM and returns the response
     def llama_query(self, payload):
+        print('Query start...', end='', flush=True)
         response = requests.post(self.API_URL, headers=self.headers, json=payload)
+        print('done', flush=True)
         text = response.json()[0]['generated_text']
         response_tag = "<|start_header_id|>assistant<|end_header_id|>"
 
@@ -125,7 +127,7 @@ class HuggingFace:
         temp = 0.1 + retry * 0.9
 
         raw_response = self.llama_query({"inputs": query, "parameters": {
-                "max_new_tokens": 250,          # I think this is the max we can ask for
+                "max_new_tokens": 512,          # I think this is the max we can ask for
                 "temperature": temp
             }})
         print('Raw Response:\n', raw_response.replace('\n', ' '), flush=True)
