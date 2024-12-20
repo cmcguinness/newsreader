@@ -30,7 +30,7 @@ class LLM:
             self.retry_limit = 1
         elif model_name == 'groq':
             self.llm = Groq()
-            self.retry_limit = 0
+            self.retry_limit = 1
         else:
             self.llm = Ollama()
             self.retry_limit = 2
@@ -49,6 +49,7 @@ class LLM:
                 if retries < 0:
                     utilities.Utilities().stop_process()                # If we can't get a response, we need to stop the program
                 print(f"Retrying LLM call", flush=True)
+                time.sleep(5)
 
     #    ┌──────────────────────────────────────────────────────────┐
     #    │    Each LLM has a sweet-spot of how many articles it     │
@@ -88,9 +89,12 @@ class HuggingFace:
 
     # This makes the actual call to the LLM and returns the response
     def llama_query(self, payload):
-        print('Query start...', end='', flush=True)
         response = requests.post(self.API_URL, headers=self.headers, json=payload)
-        print('done', flush=True)
+
+        # If not 200, throw an error
+        if response.status_code != 200:
+            response.raise_for_status()
+
         text = response.json()[0]['generated_text']
         response_tag = "<|start_header_id|>assistant<|end_header_id|>"
 
@@ -120,14 +124,14 @@ class HuggingFace:
     # This is the externally callable chat interface
     def chat(self, system_prompt, user_prompt, history, retry):        # You might get warnings about history not being used. Ignore them
         if system_prompt is None:
-            with open('system_prompt.md', 'r') as f:
+            with open('revised_system_prompt.md', 'r') as f:
                 system_prompt = f.read()
         query = self.build_query(system_prompt, user_prompt, history)
 
         temp = 0.1 + retry * 0.9
 
         raw_response = self.llama_query({"inputs": query, "parameters": {
-                "max_new_tokens": 512,          # I think this is the max we can ask for
+                "max_new_tokens": 250,          # I think this is the max we can ask for
                 "temperature": temp
             }})
         print('Raw Response:\n', raw_response.replace('\n', ' '), flush=True)
@@ -165,7 +169,7 @@ class Anthropic:
         }
 
         if system_prompt is None:
-            with open('system_prompt.md', 'r') as f:
+            with open('revised_system_prompt.md', 'r') as f:
                 system_prompt = f.read()
 
         # Still not sure that this is perfect, but it works
@@ -218,7 +222,7 @@ class Ollama:
 
     def chat(self, system_prompt, user_prompt, history, retry):
         if system_prompt is None:
-            with open('system_prompt.md', 'r') as f:
+            with open('revised_system_prompt.md', 'r') as f:
                 system_prompt = f.read()
 
         messages = [{'role': 'system', 'content': system_prompt}]
@@ -254,7 +258,11 @@ class Ollama:
 
         return parsed_response
 
-
+#    ┌──────────────────────────────────────────────────────────┐
+#    │                                                          │
+#    │                           GROQ                           │
+#    │                                                          │
+#    └──────────────────────────────────────────────────────────┘
 class Groq:
     def __init__(self):
         self.url = 'https://api.groq.com/openai/v1/chat/completions'
@@ -262,8 +270,6 @@ class Groq:
         self.model = os.getenv('GROQ_MODEL', 'llama3-70b-8192')
 
     def get_batch_size(self):
-        if self.model == 'llama3-70b-8192':
-            return 10
         return 5
 
     def query(self, query):
@@ -277,21 +283,36 @@ class Groq:
             full_response = full_response.json()
             if 'error' in full_response:
                 if full_response['error']['code'] == "rate_limit_exceeded":
+                    # Find the number of seconds to wait
                     m = full_response['error']['message']
                     start_string = "Please try again in "
                     s = m.index(start_string) + len(start_string)
                     m = m[s:]
                     e = m.index('s')
                     m = m[:e]
-                    d = int(float(m) + 1)
-                    print(f"Rate limit exceeded.  Waiting {d} seconds", flush=True)
+                    # If it's in milliseconds, convert to seconds
+                    if m[-1] == 'm':
+                        m = m[:-1]
+                        m = float(m) / 1000
+                    else:
+                        m = float(m)
+
+                    # Round up two seconds
+                    d = int(m + 2)
+                    print(f"Rate limit exceeded.  Waiting {d} second{'s' * (d > 1)}", flush=True)
                     time.sleep(d)
                     continue
             return full_response
 
-    def chat(self, system_prompt, user_prompt, history):
+    def chat(self, system_prompt, user_prompt, history, isRetry):
+
+        # If we're retrying, wait because we may have a weird rate limit edge case where the
+        # previous call's output was cut short because of rate limiting
+        if isRetry:
+            time.sleep(10)
+
         if system_prompt is None:
-            with open('system_prompt.md', 'r') as f:
+            with open('revised_system_prompt.md', 'r') as f:
                 system_prompt = f.read()
 
         messages = [{'role': 'system', 'content': system_prompt}]
@@ -303,7 +324,7 @@ class Groq:
         llm_input = {
             'messages': messages,
             'model': self.model,
-            'temperature': 0.1,
+            'temperature': 0.1 + 0.9 * isRetry,
         }
 
         full_response = self.query(llm_input)
